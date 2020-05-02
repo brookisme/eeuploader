@@ -9,7 +9,6 @@ from ee.cli.utils import wait_for_task
 #
 # CONFIG
 # 
-EPSG4326='epsg:4326'
 NB_BATCHES=6
 DOT='d'
 TIMEOUT=5*60
@@ -75,7 +74,14 @@ class EEImagesUp(object):
 
 	@staticmethod
 	def task_info(task_id):
-		""" print task info (copied from ee.cli)"""
+		""" print task info (copied from ee.cli)
+		Args:
+			- task_id<str|dict>:
+				* <str> gee task id
+				* <dict> must contain id=<TASK_ID> key-value pair
+		"""
+		if isinstance(task_id,dict):
+			task_id=task_id['id']
 		for i, status in enumerate(ee.data.getTaskStatus(task_id)):
 			if i:
 				print()
@@ -148,7 +154,7 @@ class EEImagesUp(object):
 		fprops=feat.get('properties',{})
 		uri=self._uri(uri or fprops[self.uri_key])
 		name=self._name(uri,name or fprops.get(self.name_key))
-		crs=crs or feat.get(self.crs_key,EPSG4326)
+		crs=crs or fprops.get(self.crs_key)
 		tilesets=self._tilesets(uri,crs,ident,name)
 		properties=self._clean_properties(fprops,properties)
 		tstart,tend=self._start_end_time(
@@ -193,7 +199,7 @@ class EEImagesUp(object):
 		task_id=resp['id']
 		if wait:
 			wait_for_task(task_id, self.timeout)
-		return task_id
+		return resp
 
 	
 	def upload_collection(self,features=None,limit=None,nb_batches=NB_BATCHES):
@@ -265,10 +271,12 @@ class EEImagesUp(object):
 	def _tilesets(self,uri,crs,ident,name):
 		if not ident:
 			ident=name.split('/')[-1][:99]
-		return  [{
+		tset={
 			"id": ident,
-			"crs": crs,
-			"sources": [{ "uris": uri }]}]
+			"sources": [{ "uris": uri }]}
+		if crs:
+			tset['crs']=crs
+		return  [tset]
 		
 		
 	def _clean_properties(self,feat_props,props):
