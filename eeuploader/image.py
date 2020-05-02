@@ -1,11 +1,13 @@
 import re
 import math
+import time
 from datetime import datetime
 from unidecode import unidecode
 import geojson
 import mproc
 import ee.data
-from ee.cli.utils import wait_for_task
+import ee.ee_exception
+from itertools import chain
 #
 # CONFIG
 # 
@@ -32,8 +34,11 @@ TASK_TYPES = {
     'EXPORT_VIDEO': 'Export.video',
     'INGEST': 'Upload',
     'INGEST_IMAGE': 'Upload',
-    'INGEST_TABLE': 'Upload',
-}
+    'INGEST_TABLE': 'Upload' }
+TASK_FINISHED_STATES=[
+	'COMPLETED',
+	'FAILED',
+	'CANCELLED' ]
 
 
 
@@ -43,6 +48,9 @@ TASK_TYPES = {
 def _format_time(millis):
 	return datetime.fromtimestamp(millis / 1000)
 
+
+def _flatten(lists):
+	return list(chain.from_iterable(lists))
 
 
 #
@@ -104,6 +112,40 @@ class EEImagesUp(object):
 				print('  Destination URIs: %s' % ', '.join(status['destination_uris']))
 
 	
+	@staticmethod
+	def wait(task_id, timeout, noisy=True, raise_error=False):
+		""" modified ee.cli.utils.wait_for_task 
+			* silent mode
+			* optional raise error
+			* return final task status
+		"""
+		start = time.time()
+		elapsed = 0
+		last_check = 0
+		while True:
+			elapsed = time.time() - start
+			status = ee.data.getTaskStatus(task_id)[0]
+			state = status['state']
+			if state in TASK_FINISHED_STATES:
+				error_message = status.get('error_message', None)
+				if noisy: 
+					print('Task %s ended at state: %s after %.2f seconds'
+							% (task_id, state, elapsed))
+				if raise_error and error_message:
+					raise ee.ee_exception.EEException('Error: %s' % error_message)
+				return status
+			remaining = timeout - elapsed
+			if remaining > 0:
+				time.sleep(min(10, remaining))
+			else:
+				break
+		timeout_msg='Wait for task %s timed out after %.2f seconds' % (task_id, elapsed)
+		status['TIMEOUT']=timeout_msg
+		if noisy:
+			print(timeout_msg)
+		return status
+
+
 	#
 	# PUBLIC
 	#
@@ -123,7 +165,9 @@ class EEImagesUp(object):
 			crs_key='crs',
 			uri_key='gcs',
 			name_key='ee_name',
-			timeout=TIMEOUT):
+			timeout=TIMEOUT,
+			noisy=False, 
+			raise_error=False):
 		self._set_destination(user,collection)
 		self._set_features(features)
 		self.bands=self._bands(bands)        
@@ -138,6 +182,8 @@ class EEImagesUp(object):
 		self.end_time_key=end_time_key
 		self.days_delta=days_delta
 		self.timeout=timeout
+		self.noisy=noisy
+		self.raise_error=raise_error
 		
 
 		
@@ -181,7 +227,9 @@ class EEImagesUp(object):
 			start_time=None,
 			end_time=None,
 			manifest=None,
-			wait=False):
+			wait=False,
+			noisy=True, 
+			raise_error=None):
 		if not manifest:
 			manifest=self.manifest(
 				feat=feat,
@@ -198,7 +246,11 @@ class EEImagesUp(object):
 			self.force)
 		task_id=resp['id']
 		if wait:
-			wait_for_task(task_id, self.timeout)
+			resp=EEImagesUp.wait(task_id, self.timeout, noisy=noisy, raise_error=raise_error)
+			if resp and isinstance(resp,list):
+				resp=resp[0]
+		self.task_id=task_id
+		self.task=resp
 		return resp
 
 	
@@ -207,17 +259,13 @@ class EEImagesUp(object):
 		if limit:
 			feats=feats[:limit]
 		total=len(feats)
-		bs=int(math.ceil(total//nb_batches))
+		bs=int(math.ceil(total/nb_batches))
 		nb_batches=int((total+bs-1)//bs)
 		batches=[feats[b*bs:(b + 1)*bs] for b in range(nb_batches)]  
-		out=mproc.map_with_threadpool(self._upload_batch,batches,max_processes=nb_batches)
+		tasks=mproc.map_with_threadpool(self._upload_batch,batches,max_processes=nb_batches)
+		self.tasks=_flatten(tasks)
 
-		
-	def _upload_batch(self,feats):
-		print('UB',len(feats))
-		return [self.upload(f,wait=True) for f in feats]
-		
-		
+
 	#
 	# INTERNAL
 	#
@@ -241,8 +289,16 @@ class EEImagesUp(object):
 		if isinstance(feat,int):
 			feat=self.features[feat]
 		return feat
-		
-		
+
+
+	def _upload_batch(self,feats):
+		return [ self._upload_feat(f) for f in feats]
+
+
+	def _upload_feat(self,feat):
+		return self.upload(feat,wait=True,noisy=self.noisy,raise_error=self.raise_error) 
+
+
 	def _uri(self,uri):
 		uri=re.sub(GCS_URL_ROOT_REGX,'',uri)
 		if not re.search(f'^{GCS_PREFIX}',uri):
