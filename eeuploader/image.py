@@ -1,7 +1,7 @@
 import re
 import math
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from unidecode import unidecode
 import geojson
 import mproc
@@ -24,6 +24,7 @@ PP_VALUES=[
 	"MEAN",
 	"MODE",
 	"SAMPLE" ]
+DATE_FMT='%Y-%m-%d'
 # MESSAGES
 WARNING_SPECIFY_COLLECTION=(
 	"No collection set. Use `collection=False`"
@@ -214,7 +215,7 @@ class EEImagesUp(object):
 		tilesets=self._tilesets(uri,crs,tileset_id)
 		bands=self._bands(tileset_id)
 		properties=self._clean_properties(fprops,properties)
-		tstart,tend=self._start_end_time(
+		start_time,end_time=self._start_end_time(
 			start_time or fprops.get(self.start_time_key),
 			end_time or fprops.get(self.end_time_key))
 		return self._build_manifest(name,tilesets,properties,bands,start_time,end_time)
@@ -362,10 +363,22 @@ class EEImagesUp(object):
 		
 		
 	def _start_end_time(self,start_time,end_time):
-		pass
-		return None, None
-	
-	
+		if start_time:
+			start_time=datetime.strptime(start_time,DATE_FMT)
+			if end_time:
+				end_time=datetime.strptime(end_time,DATE_FMT)
+			elif self.days_delta:
+				end_time=start_time+timedelta(days=self.days_delta)
+		elif end_time:
+			end_time=datetime.strptime(end_time,DATE_FMT)
+		return self._timestamp(start_time), self._timestamp(end_time)
+
+
+	def _timestamp(self,dtime):
+		if dtime:
+			return { "seconds": int(dtime.timestamp()) }
+
+
 	def _bands(self,tileset_id):
 		if self.bands:
 			return self.bands
