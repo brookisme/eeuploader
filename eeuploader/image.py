@@ -20,11 +20,16 @@ TIMEOUT=5*60
 NAME_PREFIX="projects/earthengine-legacy/assets"
 GCS_PREFIX='gs://'
 GCS_URL_ROOT_REGX=r'^(https|http)://storage.(googleapis|cloud.google).com/'
+PP_VALUES=[
+	"MEAN",
+	"MODE",
+	"SAMPLE" ]
 # MESSAGES
 WARNING_SPECIFY_COLLECTION=(
 	"No collection set. Use `collection=False`"
 	"to upload image(s) to project root" )
-
+ERROR_PP=(
+	f"pyramiding_policy must be None or one of {str(PP_VALUES)}" )
 
 # GEE INTERNAL
 TASK_TYPES = {
@@ -155,6 +160,7 @@ class EEImagesUp(object):
 			features={},
 			collection=None,
 			bands=None,
+			band_names=None,
 			pyramiding_policy=None,
 			no_data=None,
 			force=False,
@@ -171,7 +177,8 @@ class EEImagesUp(object):
 			raise_error=False):
 		self._set_destination(user,collection)
 		self._set_features(features)
-		self.bands=self._bands(bands)        
+		self.band_names=band_names  
+		self.bands=bands    
 		self.pyramiding_policy=self._pyramiding_policy(pyramiding_policy)
 		self.no_data=self._no_data(no_data)
 		self.force=force
@@ -193,7 +200,7 @@ class EEImagesUp(object):
 				 feat={},
 				 uri=None,
 				 name=None,
-				 ident=None,
+				 tileset_id=None,
 				 crs=None,
 				 properties={},
 				 start_time=None,
@@ -202,28 +209,23 @@ class EEImagesUp(object):
 		fprops=feat.get('properties',{})
 		uri=self._uri(uri or fprops[self.uri_key])
 		name=self._name(uri,name or fprops.get(self.name_key))
+		tileset_id=self._tileset_id(tileset_id,name)
 		crs=crs or fprops.get(self.crs_key)
-		tilesets=self._tilesets(uri,crs,ident,name)
+		tilesets=self._tilesets(uri,crs,tileset_id)
+		bands=self._bands(tileset_id)
 		properties=self._clean_properties(fprops,properties)
 		tstart,tend=self._start_end_time(
 			start_time or fprops.get(self.start_time_key),
 			end_time or fprops.get(self.end_time_key))
-		mfest={
-			"name": name,
-			"tilesets": tilesets,
-			"properties": properties,
-			"start_time": tstart,
-			"end_time": tend
-		}
-		return self._add_group_properties(mfest)
+		return self._build_manifest(name,tilesets,properties,bands,start_time,end_time)
 
-	
+
 	def upload(
 			self,
 			feat={},
 			uri=None,
 			name=None,
-			ident=None,
+			tileset_id=None,
 			crs=None,
 			properties={},
 			start_time=None,
@@ -237,7 +239,7 @@ class EEImagesUp(object):
 				feat=feat,
 				uri=uri,
 				name=name,
-				ident=ident,
+				tileset_id=tileset_id,
 				crs=crs,
 				properties=properties,
 				start_time=start_time,
@@ -325,12 +327,16 @@ class EEImagesUp(object):
 			name=".".join(parts[:-1])
 		return name
 		
+
+	def _tileset_id(self,tileset_id,name):
+		if not tileset_id:
+			tileset_id=name.split('/')[-1][:99]
+		return tileset_id
+
 	
-	def _tilesets(self,uri,crs,ident,name):
-		if not ident:
-			ident=name.split('/')[-1][:99]
+	def _tilesets(self,uri,crs,tileset_id):
 		tset={
-			"id": ident,
+			"id": tileset_id,
 			"sources": [{ "uris": uri }]}
 		if crs:
 			tset['crs']=crs
@@ -360,25 +366,50 @@ class EEImagesUp(object):
 		return None, None
 	
 	
-	def _bands(self,bands):
-		pass
-	
+	def _bands(self,tileset_id):
+		if self.bands:
+			return self.bands
+		elif self.band_names:
+			return [ self._band(n,tileset_id,i) for i,n in enumerate(self.band_names) ]
+
+
+	def _band(self,name,tileset_id,index):
+		return {
+			'id': name,
+			'tileset_id': tileset_id,
+			'tileset_band_index': index }
+
 	
 	def _pyramiding_policy(self,policy):
-		pass
+		if policy:
+			policy=policy.upper()
+			if policy not in PP_VALUES:
+				raise ERROR_PP
+			return policy
 	
 	
 	def _no_data(self,no_data):
-		pass
-	
-	
+		if no_data:
+			if isinstance(no_data,(int,float)):
+				no_data=[no_data]
+			return { "values": no_data }
+
+
 	def _add(self,name,obj,data):
 		if obj is not None:
 			data[name]=obj
 		return data
 	
-	def _add_group_properties(self,manifest):
-		manifest=self._add('bands',self.bands,manifest)
+
+	def _build_manifest(self,name,tilesets,properties,bands,start_time,end_time):
+		manifest={
+			"name": name,
+			"tilesets": tilesets
+		}
+		manifest=self._add('properties',properties,manifest)
+		manifest=self._add('bands',bands,manifest)
+		manifest=self._add('start_time',start_time,manifest)
+		manifest=self._add('end_time',end_time,manifest)
 		manifest=self._add('pyramiding_policy',self.pyramiding_policy,manifest)
-		manifest=self._add('no_data',self.no_data,manifest)
+		manifest=self._add('missing_data',self.no_data,manifest)
 		return manifest
