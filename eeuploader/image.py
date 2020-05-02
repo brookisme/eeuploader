@@ -159,6 +159,7 @@ class EEImagesUp(object):
 			no_data=None,
 			force=False,
 			include=None,
+			exclude=None,
 			start_time_key='start_time',
 			end_time_key='end_time',
 			days_delta=1,
@@ -178,6 +179,7 @@ class EEImagesUp(object):
 		self.uri_key=uri_key
 		self.name_key=name_key
 		self.include=include
+		self.exclude=exclude
 		self.start_time_key=start_time_key
 		self.end_time_key=end_time_key
 		self.days_delta=days_delta
@@ -340,6 +342,9 @@ class EEImagesUp(object):
 		cprops.update(props.copy())
 		if self.include:
 			cprops={ k:cprops[k] for k in self.include }
+		elif self.exclude:
+			for k in self.exclude:
+				cprops.pop(k,None)
 		return { re.sub(' ','',k): self._clean_value(v) 
 				 for k,v in cprops.items() }
 
