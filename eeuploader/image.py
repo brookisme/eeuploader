@@ -3,6 +3,7 @@ import math
 import time
 from datetime import datetime, timedelta
 from unidecode import unidecode
+import json
 import geojson
 import mproc
 import ee.data
@@ -20,6 +21,8 @@ TIMEOUT=5*60
 NAME_PREFIX="projects/earthengine-legacy/assets"
 GCS_PREFIX='gs://'
 GCS_URL_ROOT_REGX=r'^(https|http)://storage.(googleapis|cloud.google).com/'
+USR_PRJ_REGEX=r'^(users|projects)'
+USR='users'
 PP_VALUES=[
 	"MEAN",
 	"MODE",
@@ -65,25 +68,28 @@ def _flatten(lists):
 class EEImagesUp(object):
 	
 	@staticmethod
-	def read_geojson(path,*key_path):
-		""" read geojson
+	def read_json(path,*key_path,is_geo=False):
+		""" read json/geojson
 		Args: 
 			- path<str>: path to geojson file
 			- args(key_path<str|int>):
 				an ordered series of dict-keys/list-indices
 
 				Ex: 
-					* read_geojson('path.geojson','features') 
+					* read_json('path.geojson','features') 
 					  returns the feature list
-					* read_geojson('path.geojson','features',0,'properties') 
+					* read_json('path.geojson','features',0,'properties') 
 					  returns the properties of the first feature
 
 		"""
 		with open(path,'r') as file:
-			gjsn=geojson.load(file)
+			if is_geo:
+				jsn=geojson.load(file)
+			else:
+				jsn=json.load(file)
 		for k in key_path:
-			gjsn=gjsn[k]
-		return gjsn
+			jsn=jsn[k]
+		return jsn
 	
 
 	@staticmethod
@@ -362,7 +368,8 @@ class EEImagesUp(object):
 	def _set_destination(self,user,collection):
 		if collection is None:
 			raise ValueError(WARNING_SPECIFY_COLLECTION)
-		self.user=user
+		if not re.search(USR_PRJ_REGEX):
+			self.user=f'{USR}/{user}'
 		self.collection=collection
 		self._path_parts=[NAME_PREFIX,user]
 		if collection:
