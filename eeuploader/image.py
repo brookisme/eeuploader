@@ -164,7 +164,6 @@ class EEImagesUp(object):
 			band_names=None,
 			pyramiding_policy=None,
 			no_data=None,
-			force=False,
 			include=None,
 			exclude=None,
 			start_time_key='start_time',
@@ -173,9 +172,36 @@ class EEImagesUp(object):
 			crs_key='crs',
 			uri_key='gcs',
 			name_key='ee_name',
+			force=False,
 			timeout=TIMEOUT,
 			noisy=False, 
 			raise_error=False):
+		"""
+		Args:
+
+			user
+			features
+			collection
+			bands
+			band_names
+			pyramiding_policy
+			no_data
+			include
+			exclude
+			start_time_key
+			end_time_key
+			days_delta
+			crs_key
+			uri_key
+			name_key
+			timeout
+			force
+			noisy
+			raise_error
+
+		Usage:
+
+		"""
 		self._set_destination(user,collection)
 		self._set_features(features)
 		self.band_names=band_names  
@@ -206,6 +232,23 @@ class EEImagesUp(object):
 				 properties={},
 				 start_time=None,
 				 end_time=None):
+		""" manifest for single upload
+
+		Args:
+
+			feat
+			uri
+			name
+			tileset_id
+			crs
+			properties
+			start_time
+			end_time
+		
+		Returns:
+			
+			<dict> Manifest for a single upload
+		"""
 		feat=self._feature(feat)
 		fprops=feat.get('properties',{})
 		uri=self._uri(uri or fprops[self.uri_key])
@@ -235,6 +278,31 @@ class EEImagesUp(object):
 			wait=False,
 			noisy=True, 
 			raise_error=None):
+		""" single upload
+
+		Args:
+
+			feat
+			uri
+			name
+			tileset_id
+			crs
+			properties
+			start_time
+			end_time
+			manifest
+			wait
+			noisy
+			raise_error
+
+		Sets:
+			self.task_id<str>: task id
+			self.task<dict>: task status
+
+		Returns:
+			
+			<dict> task status
+		"""
 		if not manifest:
 			manifest=self.manifest(
 				feat=feat,
@@ -251,7 +319,11 @@ class EEImagesUp(object):
 			self.force)
 		task_id=resp['id']
 		if wait:
-			resp=EEImagesUp.wait(task_id, self.timeout, noisy=noisy, raise_error=raise_error)
+			resp=EEImagesUp.wait(
+				task_id,
+				self.timeout,
+				noisy=noisy,
+				raise_error=raise_error)
 			if resp and isinstance(resp,list):
 				resp=resp[0]
 		self.task_id=task_id
@@ -260,6 +332,19 @@ class EEImagesUp(object):
 
 	
 	def upload_collection(self,features=None,limit=None,nb_batches=NB_BATCHES):
+		""" upload set of features in batches
+
+		Args:
+
+			features
+			limit
+			nb_batches	
+		
+
+		Sets:
+			self.tasks<list>: list of task status
+
+		"""
 		feats=features or self.features
 		if limit:
 			feats=feats[:limit]
