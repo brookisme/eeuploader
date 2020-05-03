@@ -185,27 +185,65 @@ class EEImagesUp(object):
 		"""
 		Args:
 
-			user
-			features
-			collection
-			bands
-			band_names
-			pyramiding_policy
-			no_data
-			include
-			exclude
-			start_time_key
-			end_time_key
-			days_delta
-			crs_key
-			uri_key
-			name_key
-			timeout
-			force
-			noisy
-			raise_error
+			user<str>:
+				gee user or project root
+				* if it begins with "users" or "projects" the string is unaltered
+				* otherwise it is pre-pended with "users"
+			features<dict|list|str|None>:
+				features list or file path to (geo)json feature collection
+				* if dict or loaded from file path the features list is assumed to 
+				  be under the the key "features"
+				* if None feat(s) or feat properties must be passed directly to the
+				  public methods.
+				* otherwise feature indices can be used for manifest/upload/upload_collection
+			collection<str|False>:
+				name of image_collection/folder to upload the images.
+
+				note: since the main purpose of this script is to upload many features
+					  it attempts to force you to use specify a collection. if you want
+					  to upload to your user/project folder root pass "False" 
+			bands<list[dict]|None>:
+				** alternatively specify `band_names` (see below) **
+				a manifest band list as specified here https://developers.google.com/earth-engine/image_manifest#bands
+				
+				note: every image being uploaded must have the same band structure
+			band_names<list[dict]|None>:
+				** ignored if `bands` is not specified **
+				generates a manifest band list as specified here https://developers.google.com/earth-engine/image_manifest#bands
+				from a list of band_names
+
+				note: every image being uploaded must have the same band structure
+			pyramiding_policy<str>:
+				one of MEAN, MODE, SAMPLE (upper or lower case is fine). default=MEAN
+
+				note: for band-level control must use `bands` not `band_names` above
+			no_data<int|list|dict>:
+				no_data value(s) or "missing_data" object described here https://developers.google.com/earth-engine/image_manifest#bands
+			include<list|None>:
+				feature-property-keys to include as ee.image-properties
+				* if None all the feature-property-keys will be included unless `exclude` list is provided
+			exclude<list|None>:
+				** ignored if `include` is provided **
+				feature-property-keys to exclude as ee.image-properties
+			start_time_key,end_time_key,crs_key,uri_key,name_key<str|None>:
+				if start_time/end_time/crs/... not provided at run time the system will
+				attempt to find them in the feature-properties using these keys
+			days_delta<int|False>:
+				if not False, and start_time is provided (or found with start_time_key), and end_time is 
+				not provided or found, end_time will be created by adding `days_delta` number of days
+				to the start_time.
+			timeout<int>:
+				how quickly to timeout if `wait` is set to true. defaults to TIMEOUT above.
+			force<bool>:
+				set to true to overwrite existing assets
+			noisy<bool>:
+				print progress during `upload_collection`
+			raise_error<bool>:
+				raise_errors during `upload_collection`
 
 		Usage:
+
+			...
 
 		"""
 		self._set_destination(user,collection)
@@ -379,6 +417,8 @@ class EEImagesUp(object):
 	def _set_features(self,features):
 		if isinstance(features,str):
 			features=EEImagesUp.read_geojson(features,'features')
+		elif isinstance(features,(dict)):
+			features=features['features']
 		self.features=features
 
 		
@@ -456,9 +496,11 @@ class EEImagesUp(object):
 		
 	def _start_end_time(self,start_time,end_time):
 		if start_time:
-			start_time=datetime.strptime(start_time,DATE_FMT)
+			if isinstance(start_time,str):
+				start_time=datetime.strptime(start_time,DATE_FMT)
 			if end_time:
-				end_time=datetime.strptime(end_time,DATE_FMT)
+				if isinstance(start_time,str):
+					end_time=datetime.strptime(end_time,DATE_FMT)
 			elif self.days_delta:
 				end_time=start_time+timedelta(days=self.days_delta)
 		elif end_time:
@@ -497,7 +539,9 @@ class EEImagesUp(object):
 		if no_data:
 			if isinstance(no_data,(int,float)):
 				no_data=[no_data]
-			return { "values": no_data }
+			if isinstance(no_data,list)
+				no_data={ "values": no_data }
+			return no_data
 
 
 	def _add(self,name,obj,data):
