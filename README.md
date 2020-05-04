@@ -72,7 +72,7 @@ pprint(up.manifest(1))
 
 # upload first feature
 up.upload(1)
-""" ouput (no wait):
+""" ouput (returns without waiting for task to finish)
 {'id': 'XER4J2RLIOWJRYNRMC7EALXH',
  'name': 'projects/earthengine-legacy/operations/XER4J2RLIOWJRYNRMC7EALXH',
  'started': 'OK'}
@@ -81,7 +81,7 @@ up.upload(1)
 # upload_collection
 up.upload_collection()
 print(up.tasks)
-""" output
+""" output (waits for all tasks to complete to return)
 [{'creation_timestamp_ms': 1588615171535,
   'description': 'Ingest image: '
                  '"projects/earthengine-legacy/assets/users/..."',
