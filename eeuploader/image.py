@@ -553,7 +553,7 @@ class EEImagesUp(object):
 	
 	
 	def _no_data(self,no_data):
-		if no_data:
+		if no_data is not None:
 			if isinstance(no_data,(int,float)):
 				no_data=[no_data]
 			if isinstance(no_data,list):
