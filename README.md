@@ -8,6 +8,7 @@ _a CLI and python-module for uploading (lots of) images to Google Earth Engine_
 2. [Quick Start](#quickstart)
 3. [Project Setup](#setup)
 4. [EEImagesUp Docs](#pydocs)
+5. [Requirements](#requirments)
 
 ---
 
@@ -404,3 +405,18 @@ Sets:
 
 """
 ```
+
+ 
+---
+
+<a name="requirments"/>
+
+### REQUIRMENTS
+
+https://github.com/brookisme/mproc
+https://click.palletsprojects.com/en/7.x/
+https://pyyaml.org/wiki/PyYAMLDocumentation
+https://pypi.org/project/geojson/
+https://pypi.org/project/Unidecode/
+
+
