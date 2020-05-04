@@ -1,6 +1,6 @@
 ### EE Uploader
 
-_a CLI and python-module for uploading (lots of) images to Google Earth Engine _
+_a CLI and python-module for uploading (lots of) images to Google Earth Engine_
 
 ---
 
