@@ -245,8 +245,32 @@ class EEImagesUp(object):
 
 		Usage:
 
-			...
+			import eeuploader.image as eup
 
+			up=eup.EEImagesUp(
+			    'projects/wri-datalab',
+			    features='dw_organized_features.geojson',
+			    collection='image_collection_name',
+			    start_time_key='date',
+			    no_data=0,
+			    force=True)
+
+			# print nb-features and manifest for first feature    
+			print('NB FEATURES:',len(up.features))
+			pprint(up.manifest(0))
+
+
+			# upload the first feature / print task status
+			# note: `upload` does not wait for task to complete.
+			#       set `wait=True` to wait for task to complete 
+			print(up.upload(0))
+			eup.EEImagesUp.task_info(up.task_id)
+
+
+			# upload the first 3 features / print task final task status for each
+			up.upload_collection(limit=3)
+			print(up.tasks)
+		
 		"""
 		self._set_destination(user,collection)
 		self._set_features(features)
@@ -338,6 +362,8 @@ class EEImagesUp(object):
 			raise_error=None):
 		""" single upload
 
+		Note: if `wait=False` the upload will not wait for task to complete.
+
 		Args:
 
 			**feat/uri/.../start_time/end_time (see manifest doc-string)**
@@ -390,6 +416,10 @@ class EEImagesUp(object):
 	
 	def upload_collection(self,features=None,limit=None,nb_batches=NB_BATCHES):
 		""" upload set of features in batches
+
+		* This method will always wait for tasks to complete before returning.
+		* `nb_batches` should be understood as the max number of simultaneous 
+		  requests for ee-image-uploads	
 
 		Args:
 

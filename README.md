@@ -7,6 +7,7 @@ _easy python uploads to GEE from feature collections_
 1. [Install](#install)
 2. [Quick Start](#quickstart)
 3. [Project Setup](#setup)
+4. [EEImagesUp Docs](#pydocs)
 
 ---
 
@@ -193,4 +194,202 @@ name_key: ee_name
 force: false
 noisy: false 
 raise_error: false
+```
+ 
+<a name="pydocs"/>
+
+### EEImagesUp DOCS
+
+METHODS:
+
+1. [Initializer](#up-init)
+2. [manifest](#up-manifest)
+3. [upload](#up-upload)
+4. [upload_collection](#up-upload_collection)
+
+<a name="up-init"/>
+##### EEImagesUp.\_\_init\_\_
+
+```python
+"""
+Args:
+
+    user<str>:
+        gee user or project root
+        * if it begins with "users" or "projects" the string is unaltered
+        * otherwise it is pre-pended with "users"
+    features<dict|list|str|None>:
+        features list or file path to (geo)json feature collection
+        * if dict or loaded from file path the features list is assumed to 
+          be under the the key "features"
+        * if None feat(s) or feat properties must be passed directly to the
+          public methods.
+        * otherwise feature indices can be used for manifest/upload/upload_collection
+    collection<str|False>:
+        name of image_collection/folder to upload the images.
+
+        note: since the main purpose of this script is to upload many features
+              it attempts to force you to use specify a collection. if you want
+              to upload to your user/project folder root pass "False" 
+    bands<list[dict]|None>:
+        ** alternatively specify `band_names` (see below) **
+        a manifest band list as specified here https://developers.google.com/earth-engine/image_manifest#bands
+        
+        note: every image being uploaded must have the same band structure
+    band_names<list[dict]|None>:
+        ** ignored if `bands` is not specified **
+        generates a manifest band list as specified here https://developers.google.com/earth-engine/image_manifest#bands
+        from a list of band_names
+
+        note: every image being uploaded must have the same band structure
+    pyramiding_policy<str>:
+        one of MEAN, MODE, SAMPLE (upper or lower case is fine). default=MEAN
+
+        note: for band-level control must use `bands` not `band_names` above
+    no_data<int|list|dict>:
+        no_data value(s) or "missing_data" object described here https://developers.google.com/earth-engine/image_manifest#bands
+    include<list|None>:
+        feature-property-keys to include as ee.image-properties
+        * if None all the feature-property-keys will be included unless `exclude` list is provided
+    exclude<list|None>:
+        ** ignored if `include` is provided **
+        feature-property-keys to exclude as ee.image-properties
+    start_time_key,end_time_key,crs_key,uri_key,name_key<str|None>:
+        if start_time/end_time/crs/... not provided at run time the system will
+        attempt to find them in the feature-properties using these keys
+    days_delta<int|False>:
+        if not False, and start_time is provided (or found with start_time_key), and end_time is 
+        not provided or found, end_time will be created by adding `days_delta` number of days
+        to the start_time.
+    timeout<int>:
+        how quickly to timeout if `wait` is set to true. defaults to TIMEOUT above.
+    force<bool>:
+        set to true to overwrite existing assets
+    noisy<bool>:
+        print progress during `upload_collection`
+    raise_error<bool>:
+        raise_errors during `upload_collection`
+
+Usage:
+
+    import eeuploader.image as eup
+
+    up=eup.EEImagesUp(
+        'projects/wri-datalab',
+        features='dw_organized_features.geojson',
+        collection='image_collection_name',
+        start_time_key='date',
+        no_data=0,
+        force=True)
+
+    # print nb-features and manifest for first feature    
+    print('NB FEATURES:',len(up.features))
+    pprint(up.manifest(0))
+
+
+    # upload the first feature / print task status
+    # note: `upload` does not wait for task to complete.
+    #       set `wait=True` to wait for task to complete 
+    print(up.upload(0))
+    eup.EEImagesUp.task_info(up.task_id)
+
+
+    # upload the first 3 features / print task final task status for each
+    up.upload_collection(limit=3)
+    print(up.tasks)
+
+"""
+```
+
+<a name="up-manifest"/>
+##### EEImagesUp.manifest
+
+```python
+""" manifest for single upload
+
+Args:
+
+    feat<dict>: 
+        a feature dictionary containing a properties dictionary
+        from which it can pull the uri, crs, ee.image-properties, ...
+    uri<str|None>:
+        google cloud storage uri (with or without the preceding "gs://")
+        or gcs url for image asset.
+    name<str|None>:
+        name of the new ee.image.  if not provided it will create a name
+        from the uri. `.`s will be replaced with `d` due to ee-naming policies.
+    tileset_id<str|None>:
+        if not provided one will be created from the name
+    crs<str|None>:
+        crs of image (for example 'epsg:4326')
+    propertie<dict>:
+        updates any features existing in feat['properties']
+    start/end_time<str|datetime|None>:
+        strings should be in YYYY-MM-DD format
+        
+        if start_time but end_time is None, and self.days_delta end_time
+        will be set start_time+(self.days_delta)days
+
+Returns:
+    
+    <dict> Manifest for a single upload
+"""
+```
+
+<a name="up-upload"/>
+##### EEImagesUp.upload
+
+```python
+""" single upload
+
+Note: if `wait=False` the upload will not wait for task to complete.
+
+Args:
+
+    **feat/uri/.../start_time/end_time (see manifest doc-string)**
+
+    manifest<dict>:
+        upload manifest.  if provided ignores all other arguments an upload
+        using this manifest
+    wait<bool>:
+        wait for task to complete
+    noisy<bool>:
+        print progress during upload
+    raise_error<bool>:
+        raise_errors during upload
+
+Sets:
+    self.task_id<str>: task id
+    self.task<dict>: task status
+
+Returns:
+    
+    <dict> task status
+"""
+```
+
+<a name="up-upload_collection"/>
+##### EEImagesUp.upload_collection
+
+```python
+""" upload set of features in batches
+
+* This method will always wait for tasks to complete before returning.
+* `nb_batches` should be understood as the max number of simultaneous 
+  requests for ee-image-uploads 
+
+Args:
+
+    features<list|None>:
+        * list of features or feature indices in self.features to upload
+        * if not provided upload all the features in self.features
+    limit<int|None>:
+        * limit features to first `limit`-elements
+    nb_batches:
+        divide uploads into `nb_batches` groups and upload them simultaneously
+
+Sets:
+    self.tasks<list>: list of task status
+
+"""
 ```
