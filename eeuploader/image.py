@@ -426,7 +426,7 @@ class EEImagesUp(object):
 		else:
 			self.user=f'{USR}/{user}'
 		self.collection=collection
-		self._path_parts=[NAME_PREFIX,user]
+		self._path_parts=[NAME_PREFIX,self.user]
 		if collection:
 			self._path_parts.append(collection)
 
