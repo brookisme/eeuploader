@@ -14,7 +14,7 @@ from itertools import chain
 #
 # CONFIG
 # 
-NB_BATCHES=20
+NB_BATCHES=50
 DOT='d'
 TIMEOUT=5*60
 #
@@ -379,7 +379,7 @@ class EEImagesUp(object):
 				raise_errors during upload
 
 		Sets:
-		
+
 			self.task_id<str>: task id
 			self.task<dict>: task status
 
