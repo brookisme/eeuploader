@@ -28,7 +28,7 @@ popd
 
 ### QUICK START EXAMPLES
 
-Note: these examples use a feature collection file (fc.geojson) and args file (upargs.yaml) that are described in detail [below](#setup).
+Note: these examples use a feature collection file ([fc.geojson](#fcgeojson)) and args file ([upargs.yaml](#upargsyaml)) that are described in detail [below](#setup).
 
 ##### CLI
 
@@ -117,6 +117,8 @@ up.upload(
 
 * NOTE: Technically you can use `EEImagesUp` without the features_collection file, either for single uploads or by passing a feature-collection-python-dict instead of a file path.
 
+<a name="fcgeojson"/>
+
 ##### FEATURE COLLECTION EXAMPLE:
 
 ```json
@@ -170,6 +172,7 @@ up.upload(
 }
 ```
 
+<a name="upargsyaml"/>
 
 ##### UPLOAD ARGS EXAMPLE:
 
@@ -208,6 +211,7 @@ METHODS:
 4. [upload_collection](#up-upload_collection)
 
 <a name="up-init"/>
+
 ##### EEImagesUp.\_\_init\_\_
 
 ```python
@@ -302,6 +306,7 @@ Usage:
 ```
 
 <a name="up-manifest"/>
+
 ##### EEImagesUp.manifest
 
 ```python
@@ -337,6 +342,7 @@ Returns:
 ```
 
 <a name="up-upload"/>
+
 ##### EEImagesUp.upload
 
 ```python
@@ -369,6 +375,7 @@ Returns:
 ```
 
 <a name="up-upload_collection"/>
+
 ##### EEImagesUp.upload_collection
 
 ```python
