@@ -71,6 +71,26 @@ def cli(ctx):
     type=bool)
 @click.pass_context
 def upload(ctx,feature_collection,index_range,indices,limit,nb_batches,noisy):
+    """ upload feature_collection
+
+    use fc file and args file (or kwargs) to upload a feature collection
+
+    Examples:
+        
+        ```bash
+        # - all images
+        eeuploader upload fc.geojson upargs.yaml
+        # - the first 10 image features
+        eeuploader upload fc.geojson upargs.yaml --limit 10
+        # - image features from 10 to 20
+        eeuploader upload fc.geojson upargs.yaml --index_range 10,20
+        # - image features 3,400,24
+        eeuploader upload fc.geojson upargs.yaml --index_range 3,400,24
+        # - image features 3,400,24 with overwrite=True
+        eeuploader upload fc.geojson upargs.yaml --index_range 3,400,24 force=True
+        ```
+
+    """
     upkwargs=_upload_kwargs(ctx.args)
     up=eeup.EEImagesUp(
         features=feature_collection,
@@ -118,6 +138,23 @@ def upload(ctx,feature_collection,index_range,indices,limit,nb_batches,noisy):
     type=int)
 @click.pass_context
 def info(ctx,feature_collection,index):
+    """ prints info for inspection before upload
+    
+    output includes:
+    - the number-of-features
+    - an example upload manifest (defaults to first feature)
+    
+
+    Examples: 
+        
+        ```bash
+        # - using upload args file
+        eeuploader info fc.geojson upargs.yaml
+        # - using kwargs 
+        eeuploader info fc.geojson user=brookwilliams collection=IM_COLLECTION_NAME
+        ```
+
+    """
     upkwargs=_upload_kwargs(ctx.args)
     up=eeup.EEImagesUp(
         features=feature_collection,
