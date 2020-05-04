@@ -421,7 +421,9 @@ class EEImagesUp(object):
 	def _set_destination(self,user,collection):
 		if collection is None:
 			raise ValueError(WARNING_SPECIFY_COLLECTION)
-		if not re.search(USR_PRJ_REGEX):
+		if re.search(USR_PRJ_REGEX,user):
+			self.user=user
+		else:
 			self.user=f'{USR}/{user}'
 		self.collection=collection
 		self._path_parts=[NAME_PREFIX,user]
@@ -431,7 +433,7 @@ class EEImagesUp(object):
 			
 	def _set_features(self,features):
 		if isinstance(features,str):
-			features=EEImagesUp.read_geojson(features,'features')
+			features=EEImagesUp.read_json(features,'features')
 		elif isinstance(features,(dict)):
 			features=features['features']
 		self.features=features
@@ -554,7 +556,7 @@ class EEImagesUp(object):
 		if no_data:
 			if isinstance(no_data,(int,float)):
 				no_data=[no_data]
-			if isinstance(no_data,list)
+			if isinstance(no_data,list):
 				no_data={ "values": no_data }
 			return no_data
 
