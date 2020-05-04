@@ -379,6 +379,7 @@ class EEImagesUp(object):
 				raise_errors during upload
 
 		Sets:
+		
 			self.task_id<str>: task id
 			self.task<dict>: task status
 
@@ -432,6 +433,7 @@ class EEImagesUp(object):
 				divide uploads into `nb_batches` groups and upload them simultaneously
 		
 		Sets:
+
 			self.tasks<list>: list of task status
 
 		"""
