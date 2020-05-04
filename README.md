@@ -16,6 +16,8 @@ _a CLI and python-module for uploading (lots of) images to Google Earth Engine_
 
 ### INSTALL
 
+Note: During these early days this must be installed locally but it will be pushed to PIP soon. Similarly, one of the requirements, [mproc](https://github.com/brookisme/mproc) should also be installed locally.
+
 ```bash
 git clone https://github.com/wri/dl_exporter.git
 pushd dl_exporter
