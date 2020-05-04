@@ -12,7 +12,7 @@ from itertools import chain
 #
 # CONFIG
 # 
-NB_BATCHES=6
+NB_BATCHES=10
 DOT='d'
 TIMEOUT=5*60
 #

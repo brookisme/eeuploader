@@ -2,6 +2,7 @@ from __future__ import print_function
 import os,sys
 sys.path.append(os.environ.get('PROJECT_DIR','..'))
 import re
+from datetime import datetime
 from pprint import pprint
 import yaml
 import click
@@ -14,6 +15,7 @@ UPLOAD_HELP='upload feature collection'
 RANGE_HELP='restrict to index range'
 LIMIT_HELP='limit to first N'
 INDEX_HELP='index of feature to generate manifiest'
+NB_BATCHES_HELP='number of simultaneous uploads'
 LIMIT=None
 NOISY=False
 INDEX=0
@@ -24,8 +26,7 @@ ARG_KWARGS_SETTINGS={
     'ignore_unknown_options': True,
     'allow_extra_args': True
 }
-
-
+TS_FMT='[%Y%m%d]: %H:%M:%S'
 ERROR_MISSING_PARAM_FILE="ee.uploader.cli: {} is not a file"
 
 
@@ -44,7 +45,7 @@ def cli(ctx):
     context_settings=ARG_KWARGS_SETTINGS ) 
 @click.argument('feature_collection',type=str)
 @click.option(
-    '--range',
+    '--index_range',
     help=RANGE_HELP,
     default=None,
     type=str)
@@ -59,19 +60,47 @@ def cli(ctx):
     default=LIMIT,
     type=int)
 @click.option(
+    '--nb_batches',
+    help=NB_BATCHES_HELP,
+    default=eeup.NB_BATCHES,
+    type=int)
+@click.option(
     '--noisy',
     help=NOISY_HELP,
     default=NOISY,
     type=bool)
 @click.pass_context
-def upload(ctx,feature_collection,range,indices,limit,noisy):
+def upload(ctx,feature_collection,index_range,indices,limit,nb_batches,noisy):
     upkwargs=_upload_kwargs(ctx.args)
     up=eeup.EEImagesUp(
         features=feature_collection,
         **upkwargs)
-    print(feature_collection,upkwargs,range,indices,limit,noisy)
-    print(up._path_parts)
-    pass
+    print('\n'*2)
+    print('eeuploader.cli.upload:')
+    print()
+    print('- feature_collection:',feature_collection)
+    if index_range:
+        print('- index_range:',index_range)
+        index_range=_int_parts(index_range)
+        features=list(range(*index_range))
+    elif indices:
+        print('- indices:',indices)
+        features=_int_parts(indices)
+    else:
+        features=None
+    if limit:
+        print('- limit:',limit)
+    print('- noisy:',noisy)
+    print()
+    print('START: ',_timestamp())
+    pprint(up.upload_collection(
+        features=features,
+        limit=limit,
+        nb_batches=nb_batches))
+    print('COMPLETE: ',_timestamp())
+    print()
+    print('\n'*2)
+
 
 
 
@@ -119,7 +148,6 @@ def _upload_kwargs(ctx_args):
     return upkwargs
 
 
-
 def _args_kwargs(ctx_args):
     args=[]
     kwargs={}
@@ -142,6 +170,14 @@ def _read_yaml(path,*key_path):
     for k in key_path:
         obj=obj[k]
     return obj
+
+
+def _int_parts(ints_string):
+    return [int(i) for i in ints_string.split(',')]
+
+
+def _timestamp():
+    return datetime.now().strftime(TS_FMT)
 
 
 #
