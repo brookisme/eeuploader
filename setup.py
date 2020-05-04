@@ -18,6 +18,7 @@ setup(
   classifiers = [],
   entry_points={
       'console_scripts': [
+          'eeuploader=eeuploader.cli:cli'
       ]
   }
 )
