@@ -1,6 +1,6 @@
 ### EE Uploader
 
-_easy python uploads to GEE from feature collections_
+_a CLI and python-module for uploading (lots of) images to Google Earth Engine _
 
 ---
 
