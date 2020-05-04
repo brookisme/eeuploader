@@ -280,15 +280,27 @@ class EEImagesUp(object):
 
 		Args:
 
-			feat
-			uri
-			name
-			tileset_id
-			crs
-			properties
-			start_time
-			end_time
-		
+			feat<dict>: 
+				a feature dictionary containing a properties dictionary
+				from which it can pull the uri, crs, ee.image-properties, ...
+			uri<str|None>:
+				google cloud storage uri (with or without the preceding "gs://")
+				or gcs url for image asset.
+			name<str|None>:
+				name of the new ee.image.  if not provided it will create a name
+				from the uri. `.`s will be replaced with `d` due to ee-naming policies.
+			tileset_id<str|None>:
+				if not provided one will be created from the name
+			crs<str|None>:
+				crs of image (for example 'epsg:4326')
+			propertie<dict>:
+				updates any features existing in feat['properties']
+			start/end_time<str|datetime|None>:
+				strings should be in YYYY-MM-DD format
+				
+				if start_time but end_time is None, and self.days_delta end_time
+				will be set start_time+(self.days_delta)days
+
 		Returns:
 			
 			<dict> Manifest for a single upload
@@ -326,18 +338,17 @@ class EEImagesUp(object):
 
 		Args:
 
-			feat
-			uri
-			name
-			tileset_id
-			crs
-			properties
-			start_time
-			end_time
-			manifest
-			wait
-			noisy
-			raise_error
+			**feat/uri/.../start_time/end_time (see manifest doc-string)**
+
+			manifest<dict>:
+				upload manifest.  if provided ignores all other arguments an upload
+				using this manifest
+			wait<bool>:
+				wait for task to complete
+			noisy<bool>:
+				print progress during upload
+			raise_error<bool>:
+				raise_errors during upload
 
 		Sets:
 			self.task_id<str>: task id
@@ -380,11 +391,14 @@ class EEImagesUp(object):
 
 		Args:
 
-			features
-			limit
-			nb_batches	
+			features<list|None>:
+				* list of features or feature indices in self.features to upload
+				* if not provided upload all the features in self.features
+			limit<int|None>:
+				* limit features to first `limit`-elements
+			nb_batches:
+				divide uploads into `nb_batches` groups and upload them simultaneously
 		
-
 		Sets:
 			self.tasks<list>: list of task status
 
@@ -398,6 +412,7 @@ class EEImagesUp(object):
 		batches=[feats[b*bs:(b + 1)*bs] for b in range(nb_batches)]  
 		tasks=mproc.map_with_threadpool(self._upload_batch,batches,max_processes=nb_batches)
 		self.tasks=_flatten(tasks)
+
 
 
 	#
