@@ -1,3 +1,5 @@
+import ee
+ee.Initialize()
 import re
 import math
 import time
