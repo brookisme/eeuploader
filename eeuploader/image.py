@@ -180,7 +180,7 @@ class EEImagesUp(object):
 			name_key='ee_name',
 			force=False,
 			timeout=TIMEOUT,
-			noisy=False, 
+			noisy=False,
 			raise_error=False):
 		"""
 		Args:
