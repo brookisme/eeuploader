@@ -413,10 +413,10 @@ Sets:
 
 ### REQUIRMENTS
 
-https://github.com/brookisme/mproc
-https://click.palletsprojects.com/en/7.x/
-https://pyyaml.org/wiki/PyYAMLDocumentation
-https://pypi.org/project/geojson/
-https://pypi.org/project/Unidecode/
+* https://github.com/brookisme/mproc
+* https://click.palletsprojects.com/en/7.x/
+* https://pyyaml.org/wiki/PyYAMLDocumentation
+* https://pypi.org/project/geojson/
+* https://pypi.org/project/Unidecode/
 
 
