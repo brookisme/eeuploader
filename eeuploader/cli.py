@@ -92,13 +92,15 @@ def upload(ctx,feature_collection,index_range,indices,limit,nb_batches,noisy):
         print('- limit:',limit)
     print('- noisy:',noisy)
     print()
-    print('START: ',_timestamp())
-    pprint(up.upload_collection(
+    start=_timestamp('start')
+    print()
+    up.upload_collection(
         features=features,
         limit=limit,
-        nb_batches=nb_batches))
-    print('COMPLETE: ',_timestamp())
+        nb_batches=nb_batches)
+    pprint(up.tasks)
     print()
+    _timestamp('complete',start)
     print('\n'*2)
 
 
@@ -176,9 +178,12 @@ def _int_parts(ints_string):
     return [int(i) for i in ints_string.split(',')]
 
 
-def _timestamp():
-    return datetime.now().strftime(TS_FMT)
-
+def _timestamp(prefix,start=None):
+    dt=datetime.now()
+    print(f'{prefix.upper()}:',dt.strftime(TS_FMT))
+    if start:
+        print('DURATION:',dt-start)
+    return dt
 
 #
 # MAIN
