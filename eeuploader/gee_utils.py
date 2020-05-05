@@ -31,7 +31,7 @@ def asset_id(user,collection=None,name=None,prefix=False,safe=True):
             elif is true: replace '.' with lower-case='d'
             else: replace '.' with <safe>
     """
-    if re.search(USR_PRJ_REGEX,user):
+    if not re.search(USR_PRJ_REGEX,user):
         user=f'{USR}/{user}'
     a_id=user
     if prefix:
@@ -112,11 +112,40 @@ def wait(task_id, timeout, noisy=True, raise_error=False):
     return status
 
 
-@staticmethod
-def assets(user,collection=None):
-    """ list assets 
+def assets(user,collection=None,return_ids=True,strip_prefix=True):
+    """ get gee assets 
 
-    List
-    """
-    pass
+    Args:
+
+        user<str>:
+            gee user or project root
+            * if it begins with "users" or "projects" the string is unaltered
+            * otherwise it is pre-pended with "users"
+        collection<str|None>:
+            name of image_collection or folder
+        return_ids<bool>:
+            * if true: return asset_id only
+            * otherwise: return list object
+        strip_prefix<bool>:
+            * if true: strip "projects/earthengine-legacy/assets"
+
+    Returns<list>: list of assets
+    """     
+    children=ee.data.getList({'id': asset_id(user,collection,prefix=False)})
+    if return_ids:
+        children=[ _get_id(c,strip_prefix) for c in children]
+    return children
+
+
+
+#
+# INTERNAL
+#
+def _get_id(obj,strip_prefix):
+    oid=obj['id']
+    if strip_prefix:
+        oid=re.sub(f'^{NAME_PREFIX}/','',oid)
+    return oid
+
+
 
