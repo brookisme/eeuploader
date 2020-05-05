@@ -334,7 +334,6 @@ class EEImagesUp(object):
 			resp={
 				'WARNING': f'Asset {manifest["name"]} exists. Upload Skipped',
 				'manifest': manifest }
-			print(resp)
 		else:
 			resp=ee.data.startIngestion(
 				ee.data.newTaskId()[0], 
