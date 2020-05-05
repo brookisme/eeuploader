@@ -17,16 +17,12 @@ from . import utils
 # CONFIG
 # 
 NB_BATCHES=50
-DOT='d'
 TIMEOUT=5*60
 #
 # CONSTANTS
 #
-NAME_PREFIX="projects/earthengine-legacy/assets"
 GCS_PREFIX='gs://'
 GCS_URL_ROOT_REGX=r'^(https|http)://storage.(googleapis|cloud.google).com/'
-USR_PRJ_REGEX=r'^(users|projects)'
-USR='users'
 PP_VALUES=[
 	"MEAN",
 	"MODE",
@@ -366,14 +362,8 @@ class EEImagesUp(object):
 	def _set_destination(self,user,collection):
 		if collection is None:
 			raise ValueError(WARNING_SPECIFY_COLLECTION)
-		if re.search(USR_PRJ_REGEX,user):
-			self.user=user
-		else:
-			self.user=f'{USR}/{user}'
+		self.user=gutils.asset_id(user,prefix=False)
 		self.collection=collection
-		self._path_parts=[NAME_PREFIX,self.user]
-		if collection:
-			self._path_parts.append(collection)
 
 			
 	def _set_features(self,features):
@@ -408,11 +398,12 @@ class EEImagesUp(object):
 	def _name(self,uri,name):
 		if not name:
 			name=self._uri_to_name(uri)
-		name=re.sub('\.',DOT,name)
-		for p in self._path_parts:
-			name=re.sub(f'^{p}/','',name)
-		name="/".join(self._path_parts+[name])
-		return name
+		return gutils.asset_id(
+			self.user,
+			collection=self.collection,
+			name=name,
+			prefix=True,
+			safe=True)
 
 		
 	def _uri_to_name(self,uri):

@@ -1,7 +1,53 @@
 import ee
+import re
+#
+# CONSTANTS
+#
+NAME_PREFIX="projects/earthengine-legacy/assets"
+USR_PRJ_REGEX=r'^(users|projects)'
+USR='users'
+DOT='d'
+
+
 #
 # GEE HELPERS
 #
+def asset_id(user,collection=None,name=None,prefix=False,safe=True):
+    """ build gee asset_id from parts
+
+    Args:
+        user<str>:
+            gee user or project root
+            * if it begins with "users" or "projects" the string is unaltered
+            * otherwise it is pre-pended with "users"
+        collection<str|None>:
+            name of image_collection or folder
+        name<str>:
+            asset name
+        prefix<bool>:
+            if true: prepend asset id with "projects/earthengine-legacy/assets"
+        safe<bool>:
+            if falsey: do nothing
+            elif is true: replace '.' with lower-case='d'
+            else: replace '.' with <safe>
+    """
+    if re.search(USR_PRJ_REGEX,user):
+        user=f'{USR}/{user}'
+    a_id=user
+    if prefix:
+        if not re.search(f'^{NAME_PREFIX}',a_id):
+            a_id=f'{NAME_PREFIX}/{a_id}'
+    if collection:
+        a_id=f'{a_id}/{collection}'
+    if name:
+        a_id=f'{a_id}/{name}'
+    if safe:
+        if safe is True:
+            safe=DOT
+        a_id=re.sub(r'\.',safe,a_id)
+    return a_id
+
+
 def task_info(task_id):
     """ print task info (copied from ee.cli)
     Args:
@@ -68,6 +114,9 @@ def wait(task_id, timeout, noisy=True, raise_error=False):
 
 @staticmethod
 def assets(user,collection=None):
-    """ list assets """
+    """ list assets 
+
+    List
+    """
     pass
 

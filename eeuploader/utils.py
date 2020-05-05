@@ -2,6 +2,7 @@ from pathlib import Path, PurePath
 import json
 import geojson
 import yaml
+import pickle
 #
 # I/O
 #
