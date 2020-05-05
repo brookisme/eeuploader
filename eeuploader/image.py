@@ -2,7 +2,6 @@ import ee
 ee.Initialize()
 import re
 import math
-import time
 from datetime import datetime, timedelta
 from unidecode import unidecode
 import json
@@ -34,20 +33,6 @@ WARNING_SPECIFY_COLLECTION=(
 	"to upload image(s) to project root" )
 ERROR_PP=(
 	f"pyramiding_policy must be None or one of {str(PP_VALUES)}" )
-
-# GEE INTERNAL
-TASK_TYPES = {
-    'EXPORT_FEATURES': 'Export.table',
-    'EXPORT_IMAGE': 'Export.image',
-    'EXPORT_TILES': 'Export.map',
-    'EXPORT_VIDEO': 'Export.video',
-    'INGEST': 'Upload',
-    'INGEST_IMAGE': 'Upload',
-    'INGEST_TABLE': 'Upload' }
-TASK_FINISHED_STATES=[
-	'COMPLETED',
-	'FAILED',
-	'CANCELLED' ]
 
 
 
@@ -86,6 +71,7 @@ class EEImagesUp(object):
 			crs_key='crs',
 			uri_key='gcs',
 			name_key='ee_name',
+			skip_existing=True,
 			force=False,
 			timeout=TIMEOUT,
 			noisy=False,
@@ -142,6 +128,8 @@ class EEImagesUp(object):
 				to the start_time.
 			timeout<int>:
 				how quickly to timeout if `wait` is set to true. defaults to TIMEOUT above.
+			skip_existing<bool>:
+				if true skip uploads for existing assets
 			force<bool>:
 				set to true to overwrite existing assets
 			noisy<bool>:
@@ -181,6 +169,7 @@ class EEImagesUp(object):
 		"""
 		self._set_destination(user,collection)
 		self._set_features(features)
+		self._set_existing(skip_existing)
 		self.band_names=band_names  
 		self.bands=bands    
 		self.pyramiding_policy=self._pyramiding_policy(pyramiding_policy)
@@ -304,21 +293,27 @@ class EEImagesUp(object):
 				properties=properties,
 				start_time=start_time,
 				end_time=end_time)
-		resp=ee.data.startIngestion(
-			ee.data.newTaskId()[0], 
-			manifest, 
-			self.force)
-		task_id=resp['id']
-		if wait:
-			resp=gutils.wait(
-				task_id,
-				self.timeout,
-				noisy=noisy,
-				raise_error=raise_error)
-			if resp and isinstance(resp,list):
-				resp=resp[0]
-		self.task_id=task_id
-		self.task=resp
+		if self._check_existing(manifest):
+			resp={
+				'WARNING': f'Asset {manifest["name"]} exists. Upload Skipped',
+				'manifest': manifest }
+			print(resp)
+		else:
+			resp=ee.data.startIngestion(
+				ee.data.newTaskId()[0], 
+				manifest, 
+				self.force)
+			task_id=resp['id']
+			if wait:
+				resp=gutils.wait(
+					task_id,
+					self.timeout,
+					noisy=noisy,
+					raise_error=raise_error)
+				if resp and isinstance(resp,list):
+					resp=resp[0]
+			self.task_id=task_id
+			self.task=resp
 		return resp
 
 	
@@ -373,7 +368,18 @@ class EEImagesUp(object):
 			features=features['features']
 		self.features=features
 
-		
+
+	def _set_existing(self,skip_existing):
+		self.skip_existing=skip_existing
+		if skip_existing:
+			self.existing_assets=gutils.assets(
+				self.user,
+				collection=self.collection,
+				strip_prefix=False)
+		else:
+			self.existing_assets=False
+
+
 	def _feature(self,feat):
 		if isinstance(feat,int):
 			feat=self.features[feat]
@@ -413,6 +419,13 @@ class EEImagesUp(object):
 			name=".".join(parts[:-1])
 		return name
 		
+
+	def _check_existing(self,name):
+		if isinstance(name,dict):
+			name=name['name']
+		if self.skip_existing:
+			return name in self.existing_assets
+
 
 	def _tileset_id(self,tileset_id,name):
 		if not tileset_id:

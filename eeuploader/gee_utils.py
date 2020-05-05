@@ -1,13 +1,26 @@
 import ee
 import re
+import time
 #
 # CONSTANTS
 #
-NAME_PREFIX="projects/earthengine-legacy/assets"
-USR_PRJ_REGEX=r'^(users|projects)'
 USR='users'
 DOT='d'
-
+# GEE INTERNAL
+USR_PRJ_REGEX=r'^(users|projects)'
+NAME_PREFIX="projects/earthengine-legacy/assets"
+TASK_TYPES = {
+    'EXPORT_FEATURES': 'Export.table',
+    'EXPORT_IMAGE': 'Export.image',
+    'EXPORT_TILES': 'Export.map',
+    'EXPORT_VIDEO': 'Export.video',
+    'INGEST': 'Upload',
+    'INGEST_IMAGE': 'Upload',
+    'INGEST_TABLE': 'Upload' }
+TASK_FINISHED_STATES=[
+    'COMPLETED',
+    'FAILED',
+    'CANCELLED' ]
 
 #
 # GEE HELPERS
