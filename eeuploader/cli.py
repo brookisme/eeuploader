@@ -7,6 +7,7 @@ from pprint import pprint
 import yaml
 import click
 import eeuploader.image as eeup
+import eeuploader.utils as utils
 
 #
 # DEFAULTS
@@ -178,7 +179,7 @@ def _upload_kwargs(ctx_args):
     if args:
         path=args[0]
         if os.path.isfile(path):
-            upkwargs=_read_yaml(path)
+            upkwargs=utils.read_yaml(path)
         else:
             raise ValueError(ERROR_MISSING_PARAM_FILE.format(path))
     else:
@@ -197,18 +198,6 @@ def _args_kwargs(ctx_args):
         else:
             args.append(a)
     return args,kwargs
-
-
-def _read_yaml(path,*key_path):
-    """ read yaml file
-    path<str>: path to yaml file
-    *key_path: keys to go to in object
-    """    
-    with open(path,'rb') as file:
-        obj=yaml.safe_load(file)
-    for k in key_path:
-        obj=obj[k]
-    return obj
 
 
 def _int_parts(ints_string):
