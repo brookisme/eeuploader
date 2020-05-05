@@ -18,6 +18,12 @@ LIMIT_HELP='limit to first N'
 INDEX_HELP='index of feature to generate manifiest'
 NB_BATCHES_HELP='number of simultaneous uploads'
 PRINT_ALL_HELP='print all the tasks, if false print first-last'
+DEST_HELP='save manifest file to destination <dest>'
+ALL_HELP='if true save/print all features'
+SAVE_AS_HELP='one of json or pickle. defaults to pickle'
+DEST=None
+ALL=False
+SAVE_AS=eeup.PICKLE
 LIMIT=None
 NOISY=False
 INDEX=0
@@ -145,12 +151,37 @@ def upload(ctx,feature_collection,index_range,indices,limit,nb_batches,noisy,pri
     context_settings=ARG_KWARGS_SETTINGS ) 
 @click.argument('feature_collection',type=str)
 @click.option(
+    '--dest',
+    help=DEST_HELP,
+    default=DEST,
+    type=str)
+@click.option(
     '--index',
     help=INDEX_HELP,
     default=INDEX,
     type=int)
+@click.option(
+    '--index_range',
+    help=RANGE_HELP,
+    default=None,
+    type=str)
+@click.option(
+    '--indices',
+    help=INDICES,
+    default=None,
+    type=str)
+@click.option(
+    '--all',
+    help=ALL_HELP,
+    default=ALL,
+    type=bool)
+@click.option(
+    '--save_as',
+    help=SAVE_AS_HELP,
+    default=SAVE_AS,
+    type=str)
 @click.pass_context
-def info(ctx,feature_collection,index):
+def info(ctx,feature_collection,dest,index,index_range,indices,all,save_as):
     """ prints info for inspection before upload
     
     output includes:
@@ -177,9 +208,22 @@ def info(ctx,feature_collection,index):
     print()
     print('- feature_collection:',feature_collection)
     print('- nb_features:',len(up.features))
-    print(f'- ex manifest[{index}]:')
+    if all:
+        print('- all-features: True')
+        features=up.features
+    elif index_range:
+        print('- index_range:',index_range)
+        index_range=_int_parts(index_range)
+        features=list(range(*index_range))
+    elif indices:
+        print('- indices:',indices)
+        features=_int_parts(indices)
+    else:
+        features=None
+        print('- index:',index)
+    print(f'- manifest:')
     print()
-    pprint(up.manifest(index))
+    pprint(up.manifest(feat=index,features=features,dest=dest,save_as=save_as))
     print('\n'*2)
 
 

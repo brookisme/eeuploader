@@ -282,6 +282,7 @@ Args:
 Usage:
 
     import eeuploader.image as eup
+    import eeuploader.gee_utils as gutils
 
     up=eup.EEImagesUp(
         'projects/wri-datalab',
@@ -300,7 +301,7 @@ Usage:
     # note: `upload` does not wait for task to complete.
     #       set `wait=True` to wait for task to complete 
     print(up.upload(0))
-    eup.EEImagesUp.task_info(up.task_id)
+    gutils.task_info(up.task_id)
 
 
     # upload the first 3 features / print task final task status for each
