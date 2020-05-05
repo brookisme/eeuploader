@@ -17,9 +17,11 @@ RANGE_HELP='restrict to index range'
 LIMIT_HELP='limit to first N'
 INDEX_HELP='index of feature to generate manifiest'
 NB_BATCHES_HELP='number of simultaneous uploads'
+PRINT_ALL_HELP='print all the tasks, if false print first-last'
 LIMIT=None
 NOISY=False
 INDEX=0
+PRINT_ALL=False
 INDICES='comma separated feature index list'
 NOISY_HELP='be noisy'
 INFO_HELP='print number of features and manifiest for first feature'
@@ -70,8 +72,13 @@ def cli(ctx):
     help=NOISY_HELP,
     default=NOISY,
     type=bool)
+@click.option(
+    '--print_all',
+    help=PRINT_ALL_HELP,
+    default=PRINT_ALL,
+    type=bool)
 @click.pass_context
-def upload(ctx,feature_collection,index_range,indices,limit,nb_batches,noisy):
+def upload(ctx,feature_collection,index_range,indices,limit,nb_batches,noisy,print_all):
     """ upload feature_collection
 
     use fc file and args file (or kwargs) to upload a feature collection
@@ -119,9 +126,14 @@ def upload(ctx,feature_collection,index_range,indices,limit,nb_batches,noisy):
         features=features,
         limit=limit,
         nb_batches=nb_batches)
-    pprint(up.tasks)
     print()
     _timestamp('complete',start)
+    print('- nb_tasks:',len(up.tasks))
+    print()
+    if print_all:
+        pprint(up.tasks)
+    else:
+        pprint([up.tasks[0],'...',up.tasks[-1]])
     print('\n'*2)
 
 
