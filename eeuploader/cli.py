@@ -194,8 +194,12 @@ def info(ctx,feature_collection,dest,index,index_range,indices,all,save_as):
         ```bash
         # - using upload args file
         eeuploader info fc.geojson upargs.yaml
-        # - using kwargs 
+        # - (same) using kwargs 
         eeuploader info fc.geojson user=brookwilliams collection=IM_COLLECTION_NAME
+        # - save all upload manifests to a pickle file
+        eeuploader info fc.geojson upargs.yaml --dest manifests.p --all true
+        # - save upload manifest for indices 1,10,100 to a json file
+        eeuploader info fc.geojson upargs.yaml --dest manifests.json --save_as json --indices 1,10,100
         ```
 
     """

@@ -42,6 +42,10 @@ Note: these examples use a feature collection file ([fc.geojson](#fcgeojson)) an
 eeuploader info fc.geojson upargs.yaml
 # or using kwargs instead of arg-config file
 eeuploader info fc.geojson user=brookwilliams collection=IM_COLLECTION_NAME
+# - save all upload manifests to a pickle file
+eeuploader info fc.geojson upargs.yaml --dest manifests.p --all true
+# - save upload manifest for indices 1,10,100 to a json file
+eeuploader info fc.geojson upargs.yaml --dest manifests.json --save_as json --indices 1,10,100
 
 
 # upload images to a collection (as above kwargs can be used instead of an arg-config file)
@@ -316,7 +320,7 @@ Usage:
 ##### EEImagesUp.manifest
 
 ```python
-""" manifest for single upload
+""" manifest for single upload or manifests list
 
 Args:
 
@@ -340,10 +344,22 @@ Args:
         
         if start_time but end_time is None, and self.days_delta end_time
         will be set start_time+(self.days_delta)days
+    features<list>:
+        list of features or feature-indices. if exists the returned manifest
+        will be a list of upload manifests
+    dest<str>:
+        if dest: manifest will be saved and dest will be returned
+        otherwise: manifest will be returned
+    save_as:
+        * file-type: one of ['json', 'pickle']
+        * defaults to 'pickle'
+    indent<int|None>:
+        if saving to json: indent pretty printing arg.
 
-Returns:
+Returns<str|dict>:
     
-    <dict> Manifest for a single upload
+    * <dict> Manifest for a single upload
+    * <str> Destination of saved file
 """
 ```
 
