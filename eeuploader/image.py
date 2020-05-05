@@ -17,6 +17,8 @@ from . import utils
 # 
 NB_BATCHES=50
 TIMEOUT=5*60
+PICKLE='pickle'
+JSON='json'
 #
 # CONSTANTS
 #
@@ -190,15 +192,19 @@ class EEImagesUp(object):
 
 		
 	def manifest(self,
-				 feat={},
-				 uri=None,
-				 name=None,
-				 tileset_id=None,
-				 crs=None,
-				 properties={},
-				 start_time=None,
-				 end_time=None):
-		""" manifest for single upload
+			feat={},
+			uri=None,
+			name=None,
+			tileset_id=None,
+			crs=None,
+			properties={},
+			start_time=None,
+			end_time=None,
+			features=False,
+			dest=None,
+			save_as=PICKLE,
+			indent=None):
+		""" manifest for single upload or manifests list
 
 		Args:
 
@@ -222,24 +228,55 @@ class EEImagesUp(object):
 				
 				if start_time but end_time is None, and self.days_delta end_time
 				will be set start_time+(self.days_delta)days
-
-		Returns:
+			features<list>:
+				list of features or feature-indices. if exists the returned manifest
+				will be a list of upload manifests
+			dest<str>:
+				if dest: manifest will be saved and dest will be returned
+				otherwise: manifest will be returned
+			save_as:
+				* file-type: one of ['json', 'pickle']
+				* defaults to 'pickle'
+			indent<int|None>:
+				if saving to json: indent pretty printing arg.
+		
+		Returns<str|dict>:
 			
-			<dict> Manifest for a single upload
+			* <dict> Manifest for a single upload
+			* <str> Destination of saved file
 		"""
-		feat=self._feature(feat)
-		fprops=feat.get('properties',{})
-		uri=self._uri(uri or fprops[self.uri_key])
-		name=self._name(uri,name or fprops.get(self.name_key))
-		tileset_id=self._tileset_id(tileset_id,name)
-		crs=crs or fprops.get(self.crs_key)
-		tilesets=self._tilesets(uri,crs,tileset_id)
-		bands=self._bands(tileset_id)
-		properties=self._clean_properties(fprops,properties)
-		start_time,end_time=self._start_end_time(
-			start_time or fprops.get(self.start_time_key),
-			end_time or fprops.get(self.end_time_key))
-		return self._build_manifest(name,tilesets,properties,bands,start_time,end_time)
+		if features:
+			if features is True:
+				features=self.features
+			manifest=[]
+			for feat in features:
+				manifest.append(self._feature_manifest(
+					feat=feat,
+					uri=uri,
+					name=name,
+					tileset_id=tileset_id,
+					crs=crs,
+					properties=properties,
+					start_time=start_time,
+					end_time=end_time))
+		else:
+			manifest=self._feature_manifest(
+				feat=feat,
+				uri=uri,
+				name=name,
+				tileset_id=tileset_id,
+				crs=crs,
+				properties=properties,
+				start_time=start_time,
+				end_time=end_time)
+		if dest:
+			if save_as==JSON:
+				utils.save_json(manifest,dest,indent=indent)
+			else:
+				utils.save_pickle(manifest,dest)
+			return dest
+		else:
+			return manifest
 
 
 	def upload(
@@ -516,6 +553,31 @@ class EEImagesUp(object):
 		return data
 	
 
+	def _feature_manifest(
+			self,
+			feat={},
+			uri=None,
+			name=None,
+			tileset_id=None,
+			crs=None,
+			properties={},
+			start_time=None,
+			end_time=None):
+		feat=self._feature(feat)
+		fprops=feat.get('properties',{})
+		uri=self._uri(uri or fprops[self.uri_key])
+		name=self._name(uri,name or fprops.get(self.name_key))
+		tileset_id=self._tileset_id(tileset_id,name)
+		crs=crs or fprops.get(self.crs_key)
+		tilesets=self._tilesets(uri,crs,tileset_id)
+		bands=self._bands(tileset_id)
+		properties=self._clean_properties(fprops,properties)
+		start_time,end_time=self._start_end_time(
+			start_time or fprops.get(self.start_time_key),
+			end_time or fprops.get(self.end_time_key))
+		return self._build_manifest(name,tilesets,properties,bands,start_time,end_time)
+
+
 	def _build_manifest(self,name,tilesets,properties,bands,start_time,end_time):
 		manifest={
 			"name": name,
@@ -528,3 +590,5 @@ class EEImagesUp(object):
 		manifest=self._add('pyramiding_policy',self.pyramiding_policy,manifest)
 		manifest=self._add('missing_data',self.no_data,manifest)
 		return manifest
+
+
