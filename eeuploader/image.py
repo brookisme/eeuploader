@@ -11,6 +11,8 @@ import mproc
 import ee.data
 import ee.ee_exception
 from itertools import chain
+from . import gee_utils as gutils
+from . import utils
 #
 # CONFIG
 # 
@@ -68,98 +70,6 @@ def _flatten(lists):
 # MAIN
 #
 class EEImagesUp(object):
-	
-	@staticmethod
-	def read_json(path,*key_path,is_geo=False):
-		""" read json/geojson
-		Args: 
-			- path<str>: path to geojson file
-			- args(key_path<str|int>):
-				an ordered series of dict-keys/list-indices
-
-				Ex: 
-					* read_json('path.geojson','features') 
-					  returns the feature list
-					* read_json('path.geojson','features',0,'properties') 
-					  returns the properties of the first feature
-
-		"""
-		with open(path,'r') as file:
-			if is_geo:
-				jsn=geojson.load(file)
-			else:
-				jsn=json.load(file)
-		for k in key_path:
-			jsn=jsn[k]
-		return jsn
-	
-
-	@staticmethod
-	def task_info(task_id):
-		""" print task info (copied from ee.cli)
-		Args:
-			- task_id<str|dict>:
-				* <str> gee task id
-				* <dict> must contain id=<TASK_ID> key-value pair
-		"""
-		if isinstance(task_id,dict):
-			task_id=task_id['id']
-		for i, status in enumerate(ee.data.getTaskStatus(task_id)):
-			if i:
-				print()
-			print('%s:' % status['id'])
-			print('  State: %s' % status['state'])
-			if status['state'] == 'UNKNOWN':
-				continue
-			print('  Type: %s' % TASK_TYPES.get(status.get('task_type'), 'Unknown'))
-			print('  Description: %s' % status.get('description'))
-			print('  Created: %s'
-						% _format_time(status['creation_timestamp_ms']))
-			if 'start_timestamp_ms' in status:
-				print('  Started: %s' % _format_time(status['start_timestamp_ms']))
-			if 'update_timestamp_ms' in status:
-				print('  Updated: %s'
-							% _format_time(status['update_timestamp_ms']))
-			if 'error_message' in status:
-				print('  Error: %s' % status['error_message'])
-			if 'destination_uris' in status:
-				print('  Destination URIs: %s' % ', '.join(status['destination_uris']))
-
-	
-	@staticmethod
-	def wait(task_id, timeout, noisy=True, raise_error=False):
-		""" modified ee.cli.utils.wait_for_task 
-			* silent mode
-			* optional raise error
-			* return final task status
-		"""
-		start = time.time()
-		elapsed = 0
-		last_check = 0
-		while True:
-			elapsed = time.time() - start
-			status = ee.data.getTaskStatus(task_id)[0]
-			state = status['state']
-			if state in TASK_FINISHED_STATES:
-				error_message = status.get('error_message', None)
-				if noisy: 
-					print('Task %s ended at state: %s after %.2f seconds'
-							% (task_id, state, elapsed))
-				if raise_error and error_message:
-					raise ee.ee_exception.EEException('Error: %s' % error_message)
-				return status
-			remaining = timeout - elapsed
-			if remaining > 0:
-				time.sleep(min(10, remaining))
-			else:
-				break
-		timeout_msg='Wait for task %s timed out after %.2f seconds' % (task_id, elapsed)
-		status['TIMEOUT']=timeout_msg
-		if noisy:
-			print(timeout_msg)
-		return status
-
-
 	#
 	# PUBLIC
 	#
@@ -246,6 +156,7 @@ class EEImagesUp(object):
 		Usage:
 
 			import eeuploader.image as eup
+			import eeuploader.gee_utils as gutils
 
 			up=eup.EEImagesUp(
 			    'projects/wri-datalab',
@@ -264,7 +175,7 @@ class EEImagesUp(object):
 			# note: `upload` does not wait for task to complete.
 			#       set `wait=True` to wait for task to complete 
 			print(up.upload(0))
-			eup.EEImagesUp.task_info(up.task_id)
+			gutils.task_info(up.task_id)
 
 
 			# upload the first 3 features / print task final task status for each
@@ -403,7 +314,7 @@ class EEImagesUp(object):
 			self.force)
 		task_id=resp['id']
 		if wait:
-			resp=EEImagesUp.wait(
+			resp=gutils.wait(
 				task_id,
 				self.timeout,
 				noisy=noisy,
@@ -467,7 +378,7 @@ class EEImagesUp(object):
 			
 	def _set_features(self,features):
 		if isinstance(features,str):
-			features=EEImagesUp.read_json(features,'features')
+			features=utils.read_json(features,'features')
 		elif isinstance(features,(dict)):
 			features=features['features']
 		self.features=features
